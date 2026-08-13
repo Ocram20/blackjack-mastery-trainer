@@ -5,9 +5,9 @@ import { PlayingCard } from "./PlayingCard";
 interface Props {
   cards: Card[];
   title: string;
-  active?: boolean;
-  badge?: string;
-  outcome?: string;
+  active?: boolean | undefined;
+  badge?: string | undefined;
+  outcome?: string | undefined;
 }
 
 const outcomeLabel: Record<string, string> = {
