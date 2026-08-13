@@ -49,7 +49,9 @@ export function shuffle<T>(input: T[]): T[] {
   const arr = [...input];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    const tmp = arr[i] as T;
+    arr[i] = arr[j] as T;
+    arr[j] = tmp;
   }
   return arr;
 }
@@ -83,7 +85,7 @@ export function isBlackjack(cards: Card[]): boolean {
 
 export function isPair(cards: Card[]): boolean {
   if (cards.length !== 2) return false;
-  return cardValue(cards[0].rank) === cardValue(cards[1].rank);
+  return cardValue(cards[0]!.rank) === cardValue(cards[1]!.rank);
 }
 
 export function isRed(suit: Suit): boolean {

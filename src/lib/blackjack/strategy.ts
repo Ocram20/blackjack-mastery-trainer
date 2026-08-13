@@ -66,7 +66,7 @@ export function bestAction(ctx: StrategyContext): StrategyResult {
 
   // ---- E. Split ----
   if (pair && ctx.canSplit) {
-    const sp = splitCheck(ctx, cardValue(hand[0].rank));
+    const sp = splitCheck(ctx, cardValue(hand[0]!.rank));
     if (sp) return sp;
   }
 
@@ -95,7 +95,7 @@ function surrenderCheck(
   pair: boolean,
 ): StrategyResult | null {
   const A = 11;
-  if (pair && cardValue(hand[0].rank) === 8) {
+  if (pair && cardValue(hand[0]!.rank) === 8) {
     if (inSet(d, [10, A]))
       return res("surrender", "In ENHC 8,8 contro 10 o Asso si arrende: lo split perderebbe due puntate.");
     return null;
