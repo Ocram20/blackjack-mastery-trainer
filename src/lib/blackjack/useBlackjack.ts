@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   buildShoe,
@@ -14,6 +14,14 @@ import {
   type Card,
 } from "./cards";
 import { actionLabel, bestAction, shouldTakeInsurance, type Action } from "./strategy";
+import {
+  clearProgress,
+  emptyStats,
+  loadProgress,
+  saveProgress,
+  type TrainingMode,
+} from "./persistence";
+import { forceShoe } from "./forcedDeal";
 
 export type Phase = "betting" | "insurance" | "player" | "showdown" | "quiz";
 
@@ -26,6 +34,11 @@ export interface PlayerHand {
   fromSplit: boolean;
   outcome?: "win" | "lose" | "push" | "bj" | "bust" | "surrender";
   payout?: number;
+}
+
+export interface BotHand {
+  cards: Card[];
+  done: boolean;
 }
 
 const PENETRATION = 0.75;
@@ -41,11 +54,15 @@ export function useBlackjack() {
   const [hands, setHands] = useState<PlayerHand[]>([]);
   const [active, setActive] = useState(0);
   const [dealer, setDealer] = useState<Card[]>([]);
+  const [bots, setBots] = useState<BotHand[]>([]);
   const [insurance, setInsurance] = useState(0);
   const [log, setLog] = useState<string[]>([]);
-  const [stats, setStats] = useState({ correct: 0, errors: 0, quizOk: 0, quizKo: 0 });
+  const [stats, setStats] = useState({ ...emptyStats });
   const [quizAnswer, setQuizAnswer] = useState("");
   const [quizResult, setQuizResult] = useState<string | null>(null);
+  const [players, setPlayers] = useState(1);
+  const [mode, setMode] = useState<TrainingMode>("random");
+  const [loaded, setLoaded] = useState(false);
 
   const shoeRef = useRef(shoe);
   shoeRef.current = shoe;
@@ -53,6 +70,49 @@ export function useBlackjack() {
   countRef.current = runningCount;
   const dealtRef = useRef(cardsDealt);
   dealtRef.current = cardsDealt;
+  const botsRef = useRef<BotHand[]>(bots);
+  botsRef.current = bots;
+
+  // ---------- Persistenza ----------
+  useEffect(() => {
+    const p = loadProgress();
+    if (p) {
+      if (typeof p.bankroll === "number") setBankroll(p.bankroll);
+      if (typeof p.runningCount === "number") setRunningCount(p.runningCount);
+      if (typeof p.cardsDealt === "number") setCardsDealt(p.cardsDealt);
+      if (Array.isArray(p.shoe) && p.shoe.length > 10) setShoe(p.shoe);
+      if (p.stats) setStats({ ...emptyStats, ...p.stats });
+      if (typeof p.players === "number") setPlayers(Math.min(3, Math.max(1, p.players)));
+      if (p.mode) setMode(p.mode);
+    }
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveProgress({ bankroll, runningCount, cardsDealt, shoe, stats, players, mode });
+  }, [loaded, bankroll, runningCount, cardsDealt, shoe, stats, players, mode]);
+
+  const resetProgress = useCallback(() => {
+    clearProgress();
+    const fresh = buildShoe();
+    shoeRef.current = fresh;
+    countRef.current = 0;
+    dealtRef.current = 0;
+    setShoe(fresh);
+    setRunningCount(0);
+    setCardsDealt(0);
+    setBankroll(1000);
+    setBet(25);
+    setStats({ ...emptyStats });
+    setHands([]);
+    setBots([]);
+    setDealer([]);
+    setInsurance(0);
+    setLog([]);
+    setPhase("betting");
+    toast.success("Progressi azzerati: saldo 1000 €, nuovo sabot.");
+  }, []);
 
   const trueCount = useMemo(() => calcTrueCount(runningCount, cardsDealt), [runningCount, cardsDealt]);
   const decksLeft = useMemo(() => remainingDecks(cardsDealt), [cardsDealt]);
@@ -128,6 +188,15 @@ export function useBlackjack() {
       });
       net = resolved.reduce((s, h) => s + (h.payout ?? 0), 0);
       if (insBet > 0) net += dealerBJ ? insBet * 2 : -insBet;
+      const wins = resolved.filter((h) => h.outcome === "win" || h.outcome === "bj").length;
+      const pushes = resolved.filter((h) => h.outcome === "push").length;
+      const losses = resolved.length - wins - pushes;
+      setStats((s) => ({
+        ...s,
+        wins: s.wins + wins,
+        losses: s.losses + losses,
+        pushes: s.pushes + pushes,
+      }));
       setHands(resolved);
       setDealer(dealerCards);
       setBankroll((b) => b + net);
@@ -147,13 +216,27 @@ export function useBlackjack() {
     [pushLog],
   );
 
-  /** ENHC: il banco pesca la seconda carta solo ora. */
-  const playDealer = useCallback(
-    (playerHands: PlayerHand[], insBet: number) => {
-      const allGone = playerHands.every(
-        (h) => h.surrendered || handTotal(h.cards).busted,
-      );
-      let dealerCards = [...dealer, ...draw(1)];
+  /** I bot pescano fino a 17: le loro carte alimentano il conteggio nascosto. */
+  const playBots = useCallback(() => {
+    const current = botsRef.current;
+    if (current.length === 0) return;
+    const played = current.map((b) => {
+      let cards = b.cards;
+      while (handTotal(cards).total < 17) {
+        cards = [...cards, ...draw(1)];
+      }
+      return { cards, done: true };
+    });
+    botsRef.current = played;
+    setBots(played);
+  }, [draw]);
+
+  /** ENHC: il banco pesca la seconda carta solo ora (dopo i bot). */
+  const finishRound = useCallback(
+    (playerHands: PlayerHand[], dealerStart: Card[], insBet: number) => {
+      playBots();
+      const allGone = playerHands.every((h) => h.surrendered || handTotal(h.cards).busted);
+      let dealerCards = [...dealerStart, ...draw(1)];
       if (!isBlackjack(dealerCards) && !allGone) {
         while (handTotal(dealerCards).total < 17) {
           dealerCards = [...dealerCards, ...draw(1)];
@@ -161,7 +244,7 @@ export function useBlackjack() {
       }
       settle(playerHands, dealerCards, insBet);
     },
-    [dealer, draw, settle],
+    [draw, settle, playBots],
   );
 
   const advance = useCallback(
@@ -169,13 +252,13 @@ export function useBlackjack() {
       const next = updated.findIndex((h, i) => i >= fromIndex && !h.done);
       if (next === -1) {
         setHands(updated);
-        playDealer(updated, insurance);
+        finishRound(updated, dealer, insurance);
       } else {
         setHands(updated);
         setActive(next);
       }
     },
-    [playDealer, insurance],
+    [finishRound, insurance, dealer],
   );
 
   const startRound = useCallback(() => {
@@ -184,7 +267,19 @@ export function useBlackjack() {
       return;
     }
     newShoeIfNeeded();
+    // Modalità di allenamento mirato: riordina la shoe per forzare lo scenario
+    if (mode !== "random") {
+      const forced = forceShoe(shoeRef.current, mode);
+      shoeRef.current = forced;
+      setShoe(forced);
+    }
     const player = draw(2);
+    const botHands: BotHand[] = [];
+    for (let i = 1; i < players; i++) {
+      botHands.push({ cards: draw(2), done: false });
+    }
+    botsRef.current = botHands;
+    setBots(botHands);
     const up = draw(1);
     const hand: PlayerHand = {
       cards: player,
@@ -205,29 +300,14 @@ export function useBlackjack() {
     if (isBlackjack(player)) {
       setPhase("player");
       setTimeout(() => {
-        setHands([{ ...hand, done: true }]);
-        playDealerWith([{ ...hand, done: true }], up, 0);
+        const done = [{ ...hand, done: true }];
+        setHands(done);
+        finishRound(done, up, 0);
       }, 400);
       return;
     }
     setPhase("player");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bet, bankroll, draw, newShoeIfNeeded]);
-
-  /** Variante usata quando lo state del banco non è ancora propagato. */
-  const playDealerWith = useCallback(
-    (playerHands: PlayerHand[], dealerStart: Card[], insBet: number) => {
-      const allGone = playerHands.every((h) => h.surrendered || handTotal(h.cards).busted);
-      let dealerCards = [...dealerStart, ...draw(1)];
-      if (!isBlackjack(dealerCards) && !allGone) {
-        while (handTotal(dealerCards).total < 17) {
-          dealerCards = [...dealerCards, ...draw(1)];
-        }
-      }
-      settle(playerHands, dealerCards, insBet);
-    },
-    [draw, settle],
-  );
+  }, [bet, bankroll, draw, newShoeIfNeeded, mode, players, finishRound]);
 
   const resolveInsurance = useCallback(
     (take: boolean) => {
@@ -249,12 +329,12 @@ export function useBlackjack() {
       if (hand && isBlackjack(hand.cards)) {
         const done = [{ ...hand, done: true }];
         setHands(done);
-        playDealerWith(done, dealer, insBet);
+        finishRound(done, dealer, insBet);
         return;
       }
       setPhase("player");
     },
-    [dealerUp, trueCount, bet, hands, dealer, playDealerWith],
+    [dealerUp, trueCount, bet, hands, dealer, finishRound],
   );
 
   const validate = useCallback(
@@ -340,6 +420,8 @@ export function useBlackjack() {
   const nextRound = useCallback(() => {
     setHands([]);
     setDealer([]);
+    setBots([]);
+    botsRef.current = [];
     setActive(0);
     setInsurance(0);
     setPhase("betting");
@@ -383,6 +465,7 @@ export function useBlackjack() {
     hands,
     active,
     dealer,
+    bots,
     bet,
     setBet,
     bankroll,
@@ -395,6 +478,11 @@ export function useBlackjack() {
     insurance,
     log,
     stats,
+    players,
+    setPlayers,
+    mode,
+    setMode,
+    resetProgress,
     quizAnswer,
     setQuizAnswer,
     quizResult,
