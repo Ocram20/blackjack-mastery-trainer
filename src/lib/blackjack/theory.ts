@@ -19,10 +19,10 @@ export const HARD_ROWS: Row[] = [
   { label: "16", cells: c("S S S S S C C C C C"), dev: { 7: "4+", 8: "0+" } },
   { label: "15", cells: c("S S S S S C C C C C"), dev: { 8: "3+" } },
   { label: "14", cells: c("S S S S S C C C C C") },
-  { label: "13", cells: c("S S S S S C C C C C"), dev: { 0: "-1" } },
+  { label: "13", cells: c("S S S S S C C C C C"), dev: { 0: "-1-" } },
   { label: "12", cells: c("C C S S S C C C C C"), dev: { 0: "3+", 1: "2+", 2: "0-" } },
   { label: "11", cells: c("R R R R R R R R R C"), dev: { 9: "4+" } },
-  { label: "10", cells: c("R R R R R R R R C C"), dev: { 8: "-1" } },
+  { label: "10", cells: c("R R R R R R R R C C"), dev: { 8: "-1-" } },
   { label: "9", cells: c("C R R R R C C C C C"), dev: { 0: "1+", 5: "3+" } },
   { label: "8", cells: c("C C C C C C C C C C"), dev: { 4: "2+" } },
 ];
@@ -48,21 +48,21 @@ export const SPLIT_ROWS: Row[] = [
   { label: "6,6", cells: c("YN Y Y Y Y N N N N N") },
   { label: "5,5", cells: c("N N N N N N N N N N") },
   { label: "4,4", cells: c("N N N YN YN N N N N N"), dev: { 2: "3+/N" } },
-  { label: "3,3", cells: c("YN YN Y Y Y Y N N N N"), dev: { 0: "0-" } },
+  { label: "3,3", cells: c("YN YN Y Y Y Y N N N N"), dev: { 0: "0-/N" } },
   { label: "2,2", cells: c("YN YN Y Y Y Y N N N N") },
 ];
 
 export const SURRENDER_ROWS: Row[] = [
-  { label: "17", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 8: "5+" } },
-  { label: "16", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"], dev: { 6: "4+", 7: "-1" } },
-  { label: "15", cells: ["", "", "", "", "", "", "", "", "ARR", "ARR"], dev: { 7: "2+" } },
-  { label: "14", cells: ["", "", "", "", "", "", "", "", "ARR", "ARR"] },
-  { label: "13", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 8: "3+" } },
+  { label: "17", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 9: "5+" } },
+  { label: "16", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"], dev: { 6: "4+", 7: "-1-" } },
+  { label: "15", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"], dev: { 7: "2+" } },
+  { label: "14", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"], dev: { 8: "-1-" } },
+  { label: "13", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 9: "3+" } },
   { label: "12", cells: ["", "", "", "", "", "", "", "", "", "ARR"] },
-  { label: "7", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 8: "-1" } },
-  { label: "6", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 8: "-2" } },
-  { label: "5", cells: ["", "", "", "", "", "", "", "", "", "ARR"] },
-  { label: "8,8", cells: ["", "", "", "", "", "", "", "", "ARR", "ARR"] },
+  { label: "7", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 9: "-1-" } },
+  { label: "6", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 9: "0-" } },
+  { label: "5", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 9: "2+" } },
+  { label: "8,8", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"] },
 ];
 
 export const CELL_MEANING: Record<Cell, string> = {
