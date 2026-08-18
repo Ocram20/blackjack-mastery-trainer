@@ -53,7 +53,7 @@ export const SPLIT_ROWS: Row[] = [
 ];
 
 export const SURRENDER_ROWS: Row[] = [
-  { label: "17", cells: c("- - - - - - - - - ARR").map((x) => (x === ("-" as Cell) ? "" : x)), dev: { 8: "5+" } },
+  { label: "17", cells: ["", "", "", "", "", "", "", "", "", "ARR"], dev: { 8: "5+" } },
   { label: "16", cells: ["", "", "", "", "", "", "", "ARR", "ARR", "ARR"], dev: { 6: "4+", 7: "-1" } },
   { label: "15", cells: ["", "", "", "", "", "", "", "", "ARR", "ARR"], dev: { 7: "2+" } },
   { label: "14", cells: ["", "", "", "", "", "", "", "", "ARR", "ARR"] },
