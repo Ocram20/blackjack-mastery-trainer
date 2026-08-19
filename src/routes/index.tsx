@@ -56,9 +56,14 @@ function Index() {
       <header className="border-b border-border/60 bg-black/20 backdrop-blur-md sticky top-0 z-20">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold shadow-inner">
-              <Spade className="h-5 w-5" />
-            </span>
+            <div className="relative group flex-shrink-0">
+              <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-600 opacity-60 blur-sm transition duration-300 group-hover:opacity-100" />
+              <img
+                src="/logo.png"
+                alt="Blackjack Trainer Logo"
+                className="relative h-11 w-11 rounded-xl object-cover border border-gold/40 shadow-md shadow-gold/20"
+              />
+            </div>
             <div>
               <h1 className="font-display text-xl leading-tight text-foreground flex items-center gap-2">
                 Blackjack Trainer <span className="text-gold font-bold">ENHC</span>
