@@ -11,6 +11,7 @@ export interface Progress {
   players: number;
   mode: TrainingMode;
   countingEnabled: boolean;
+  myHands: number;
 }
 
 export const STORAGE_KEY = "bj-trainer-progress-v1";

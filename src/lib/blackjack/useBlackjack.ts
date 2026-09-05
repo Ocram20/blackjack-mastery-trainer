@@ -63,6 +63,8 @@ export function useBlackjack() {
   const [players, setPlayers] = useState(1);
   const [mode, setMode] = useState<TrainingMode>("random");
   const [countingEnabled, setCountingEnabled] = useState(true);
+  const [myHands, setMyHands] = useState(1);
+  const [autoPlay, setAutoPlay] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const shoeRef = useRef(shoe);
@@ -88,14 +90,15 @@ export function useBlackjack() {
       if (typeof p.players === "number") setPlayers(Math.min(3, Math.max(1, p.players)));
       if (p.mode) setMode(p.mode);
       if (typeof p.countingEnabled === "boolean") setCountingEnabled(p.countingEnabled);
+      if (typeof p.myHands === "number") setMyHands(Math.min(3, Math.max(1, p.myHands)));
     }
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    saveProgress({ bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled });
-  }, [loaded, bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled]);
+    saveProgress({ bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled, myHands });
+  }, [loaded, bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled, myHands]);
 
   const resetProgress = useCallback(() => {
     clearProgress();
@@ -150,11 +153,11 @@ export function useBlackjack() {
       trueCount: countingEnabled ? trueCount : -99,
       canDouble: hand.cards.length === 2 && bankroll >= hand.bet,
       canSplit:
-        isPair(hand.cards) && handCount < 4 && bankroll >= hand.bet && hand.cards.length === 2,
+        isPair(hand.cards) && handCount < myHands + 3 && bankroll >= hand.bet && hand.cards.length === 2,
       canSurrender: hand.cards.length === 2 && !hand.fromSplit,
       das: DAS,
     }),
-    [dealerUp, trueCount, bankroll, countingEnabled],
+    [dealerUp, trueCount, bankroll, countingEnabled, myHands],
   );
 
   const newShoeIfNeeded = useCallback(() => {
@@ -266,8 +269,9 @@ export function useBlackjack() {
   );
 
   const startRound = useCallback(() => {
-    if (bet > bankroll) {
-      toast.error("Puntata superiore al saldo disponibile.");
+    if (bet * myHands > bankroll) {
+      toast.error(`Saldo insufficiente per ${myHands} mani da ${bet} €.`);
+      setAutoPlay(false);
       return;
     }
     newShoeIfNeeded();
@@ -277,7 +281,8 @@ export function useBlackjack() {
       shoeRef.current = forced;
       setShoe(forced);
     }
-    const player = draw(2);
+    const myCards: Card[][] = [];
+    for (let i = 0; i < myHands; i++) myCards.push(draw(2));
     const botHands: BotHand[] = [];
     for (let i = 1; i < players; i++) {
       botHands.push({ cards: draw(2), done: false });
@@ -285,33 +290,30 @@ export function useBlackjack() {
     botsRef.current = botHands;
     setBots(botHands);
     const up = draw(1);
-    const hand: PlayerHand = {
-      cards: player,
+    const dealt: PlayerHand[] = myCards.map((cards) => ({
+      cards,
       bet,
-      done: false,
+      done: isBlackjack(cards),
       doubled: false,
       surrendered: false,
       fromSplit: false,
-    };
-    setHands([hand]);
-    setActive(0);
+    }));
+    setHands(dealt);
     setDealer(up);
     setInsurance(0);
+    const firstOpen = dealt.findIndex((h) => !h.done);
+    setActive(firstOpen === -1 ? 0 : firstOpen);
     if (cardValue(up[0]!.rank) === 11) {
       setPhase("insurance");
       return;
     }
-    if (isBlackjack(player)) {
+    if (firstOpen === -1) {
       setPhase("player");
-      setTimeout(() => {
-        const done = [{ ...hand, done: true }];
-        setHands(done);
-        finishRound(done, up, 0);
-      }, 400);
+      setTimeout(() => finishRound(dealt, up, 0), 400);
       return;
     }
     setPhase("player");
-  }, [bet, bankroll, draw, newShoeIfNeeded, mode, players, finishRound]);
+  }, [bet, bankroll, draw, newShoeIfNeeded, mode, players, myHands, finishRound]);
 
   const resolveInsurance = useCallback(
     (take: boolean) => {
@@ -329,13 +331,14 @@ export function useBlackjack() {
       setStats((s) => ({ ...s, correct: s.correct + 1 }));
       const insBet = take ? bet / 2 : 0;
       setInsurance(insBet);
-      const hand = hands[0];
-      if (hand && isBlackjack(hand.cards)) {
-        const done = [{ ...hand, done: true }];
+      const firstOpen = hands.findIndex((h) => !isBlackjack(h.cards));
+      if (firstOpen === -1) {
+        const done = hands.map((h) => ({ ...h, done: true }));
         setHands(done);
         finishRound(done, dealer, insBet);
         return;
       }
+      setActive(firstOpen);
       setPhase("player");
     },
     [dealerUp, trueCount, bet, hands, dealer, finishRound, countingEnabled],
@@ -449,6 +452,19 @@ export function useBlackjack() {
     setTimeout(() => setPhase("showdown"), 1400);
   }, [quizAnswer, runningCount, trueCount]);
 
+  // ---------- Modalità automatica: distribuisce e passa mano da sola ----------
+  useEffect(() => {
+    if (!autoPlay) return;
+    if (phase === "betting") {
+      const t = setTimeout(() => startRound(), 700);
+      return () => clearTimeout(t);
+    }
+    if (phase === "showdown") {
+      const t = setTimeout(() => nextRound(), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [autoPlay, phase, startRound, nextRound]);
+
   const activeHand = hands[active];
   const availableActions = useMemo(() => {
     if (phase !== "player" || !activeHand) {
@@ -488,6 +504,10 @@ export function useBlackjack() {
     setMode,
     countingEnabled,
     setCountingEnabled,
+    myHands,
+    setMyHands,
+    autoPlay,
+    setAutoPlay,
     resetProgress,
     quizAnswer,
     setQuizAnswer,
