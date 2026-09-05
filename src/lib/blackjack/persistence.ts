@@ -10,6 +10,7 @@ export interface Progress {
   stats: { correct: number; errors: number; quizOk: number; quizKo: number; wins: number; losses: number; pushes: number };
   players: number;
   mode: TrainingMode;
+  countingEnabled: boolean;
 }
 
 export const STORAGE_KEY = "bj-trainer-progress-v1";

@@ -62,6 +62,7 @@ export function useBlackjack() {
   const [quizResult, setQuizResult] = useState<string | null>(null);
   const [players, setPlayers] = useState(1);
   const [mode, setMode] = useState<TrainingMode>("random");
+  const [countingEnabled, setCountingEnabled] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   const shoeRef = useRef(shoe);
@@ -72,6 +73,8 @@ export function useBlackjack() {
   dealtRef.current = cardsDealt;
   const botsRef = useRef<BotHand[]>(bots);
   botsRef.current = bots;
+  const countingEnabledRef = useRef(countingEnabled);
+  countingEnabledRef.current = countingEnabled;
 
   // ---------- Persistenza ----------
   useEffect(() => {
@@ -84,14 +87,15 @@ export function useBlackjack() {
       if (p.stats) setStats({ ...emptyStats, ...p.stats });
       if (typeof p.players === "number") setPlayers(Math.min(3, Math.max(1, p.players)));
       if (p.mode) setMode(p.mode);
+      if (typeof p.countingEnabled === "boolean") setCountingEnabled(p.countingEnabled);
     }
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    saveProgress({ bankroll, runningCount, cardsDealt, shoe, stats, players, mode });
-  }, [loaded, bankroll, runningCount, cardsDealt, shoe, stats, players, mode]);
+    saveProgress({ bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled });
+  }, [loaded, bankroll, runningCount, cardsDealt, shoe, stats, players, mode, countingEnabled]);
 
   const resetProgress = useCallback(() => {
     clearProgress();
@@ -143,14 +147,14 @@ export function useBlackjack() {
     (hand: PlayerHand, handCount: number) => ({
       hand: hand.cards,
       dealer: dealerUp,
-      trueCount,
+      trueCount: countingEnabled ? trueCount : -99,
       canDouble: hand.cards.length === 2 && bankroll >= hand.bet,
       canSplit:
         isPair(hand.cards) && handCount < 4 && bankroll >= hand.bet && hand.cards.length === 2,
       canSurrender: hand.cards.length === 2 && !hand.fromSplit,
       das: DAS,
     }),
-    [dealerUp, trueCount, bankroll],
+    [dealerUp, trueCount, bankroll, countingEnabled],
   );
 
   const newShoeIfNeeded = useCallback(() => {
@@ -205,7 +209,7 @@ export function useBlackjack() {
         `${dealerBJ ? "Banco BLACKJACK — " : ""}Banco ${dTotal > 21 ? "sballa" : dTotal} · Risultato ${net >= 0 ? "+" : ""}${net}€`,
       );
       // Quiz a intervalli casuali
-      if (Math.random() < 0.22) {
+      if (countingEnabledRef.current && Math.random() < 0.22) {
         setTimeout(() => {
           setQuizAnswer("");
           setQuizResult(null);
@@ -311,7 +315,7 @@ export function useBlackjack() {
 
   const resolveInsurance = useCallback(
     (take: boolean) => {
-      const correct = shouldTakeInsurance(dealerUp, trueCount);
+      const correct = countingEnabled ? shouldTakeInsurance(dealerUp, trueCount) : false;
       if (take !== correct) {
         setStats((s) => ({ ...s, errors: s.errors + 1 }));
         toast.error(
@@ -334,7 +338,7 @@ export function useBlackjack() {
       }
       setPhase("player");
     },
-    [dealerUp, trueCount, bet, hands, dealer, finishRound],
+    [dealerUp, trueCount, bet, hands, dealer, finishRound, countingEnabled],
   );
 
   const validate = useCallback(
@@ -482,6 +486,8 @@ export function useBlackjack() {
     setPlayers,
     mode,
     setMode,
+    countingEnabled,
+    setCountingEnabled,
     resetProgress,
     quizAnswer,
     setQuizAnswer,
