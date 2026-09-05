@@ -83,6 +83,8 @@ function Index() {
               mode={g.mode}
               setMode={g.setMode}
               resetProgress={g.resetProgress}
+              countingEnabled={g.countingEnabled}
+              setCountingEnabled={g.setCountingEnabled}
             />
 
             {/* Saldo Bankroll */}
@@ -92,13 +94,13 @@ function Index() {
             </div>
 
             {/* Switch Conteggio */}
-            <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
+            {g.countingEnabled && <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
               <Switch id="peek" checked={showCount} onCheckedChange={setShowCount} />
               <Label htmlFor="peek" className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
                 {showCount ? <Eye className="h-3.5 w-3.5 text-gold" /> : <EyeOff className="h-3.5 w-3.5" />}
                 <span className="hidden md:inline">Conteggio</span>
               </Label>
-            </div>
+            </div>}
           </div>
         </div>
       </header>
@@ -294,7 +296,7 @@ function Index() {
           </div>
 
           {/* Conteggio Hi-Lo */}
-          <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+          {g.countingEnabled && <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
                 Conteggio Hi-Lo
@@ -314,7 +316,7 @@ function Index() {
                 Il conteggio aggiorna anche le carte uscite dei bot. Attiva l&apos;occhio in alto per verificare il tuo conto mentale.
               </p>
             )}
-          </div>
+          </div>}
 
           {/* Statistiche Allenamento */}
           <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -324,8 +326,12 @@ function Index() {
             <div className="grid grid-cols-2 gap-2.5">
               <Stat label="Mosse Ok" value={`${g.stats.correct}`} tone="success" />
               <Stat label="Errori" value={`${g.stats.errors}`} tone="danger" />
-              <Stat label="Quiz Ok" value={`${g.stats.quizOk}`} tone="success" />
-              <Stat label="Quiz Errati" value={`${g.stats.quizKo}`} tone="danger" />
+              {g.countingEnabled && (
+                <>
+                  <Stat label="Quiz Ok" value={`${g.stats.quizOk}`} tone="success" />
+                  <Stat label="Quiz Errati" value={`${g.stats.quizKo}`} tone="danger" />
+                </>
+              )}
               <Stat label="Vinte / BJ" value={`${g.stats.wins}`} tone="success" />
               <Stat label="Perse / Bust" value={`${g.stats.losses}`} tone="danger" />
             </div>

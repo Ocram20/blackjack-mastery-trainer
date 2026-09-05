@@ -1,4 +1,4 @@
-import { Settings2, RotateCcw, Users, Target } from "lucide-react";
+import { Settings2, RotateCcw, Users, Target, Calculator } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,8 @@ interface SettingsDialogProps {
   mode: TrainingMode;
   setMode: (m: TrainingMode) => void;
   resetProgress: () => void;
+  countingEnabled: boolean;
+  setCountingEnabled: (v: boolean) => void;
 }
 
 export function SettingsDialog({
@@ -33,6 +36,8 @@ export function SettingsDialog({
   mode,
   setMode,
   resetProgress,
+  countingEnabled,
+  setCountingEnabled,
 }: SettingsDialogProps) {
   return (
     <Dialog>
@@ -52,6 +57,28 @@ export function SettingsDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-2">
+          {/* Conteggio carte */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label
+                htmlFor="counting-mode"
+                className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"
+              >
+                <Calculator className="h-4 w-4 text-gold" />
+                Modalità Conteggio Carte
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Se disattivata: nessun quiz sul Running Count e le mosse vengono valutate solo con la
+                Strategia di Base (senza deviazioni da True Count).
+              </p>
+            </div>
+            <Switch
+              id="counting-mode"
+              checked={countingEnabled}
+              onCheckedChange={setCountingEnabled}
+            />
+          </div>
+
           {/* Numero di giocatori */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm font-medium text-foreground">
