@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Eye, EyeOff, RotateCcw, Spade, Users, Target, History } from "lucide-react";
+import { Eye, EyeOff, RotateCcw, Spade, Users, Target, History, Play, Pause } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,8 @@ function Index() {
               resetProgress={g.resetProgress}
               countingEnabled={g.countingEnabled}
               setCountingEnabled={g.setCountingEnabled}
+              myHands={g.myHands}
+              setMyHands={g.setMyHands}
             />
 
             {/* Saldo Bankroll */}
@@ -114,6 +116,11 @@ function Index() {
             <p className="text-center font-display text-xs sm:text-sm tracking-[0.2em] text-gold/80 flex-1">
               IL BANCO STA SU 17 · BLACKJACK PAGA 3:2 · NO HOLE CARD
             </p>
+            {g.autoPlay && (
+              <Badge variant="outline" className="border-emerald-400/40 text-emerald-300 bg-black/40 gap-1 text-xs">
+                <Play className="h-3 w-3" /> Auto {g.bet} €
+              </Badge>
+            )}
             {g.mode !== "random" && (
               <Badge variant="outline" className="border-gold/40 text-gold bg-black/40 gap-1 text-xs">
                 <Target className="h-3 w-3" /> {MODE_LABELS[g.mode]}
@@ -183,7 +190,9 @@ function Index() {
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                     Puntata Mano
                   </Label>
-                  <span className="font-mono text-xl font-bold text-gold">{g.bet} €</span>
+                  <span className="font-mono text-xl font-bold text-gold">
+                    {g.bet} €{g.myHands > 1 && <span className="text-sm text-muted-foreground"> × {g.myHands} = {g.bet * g.myHands} €</span>}
+                  </span>
                 </div>
                 <Slider
                   value={[g.bet]}
@@ -206,9 +215,20 @@ function Index() {
                     </Button>
                   ))}
                 </div>
-                <Button className="w-full font-bold text-base py-6 shadow-lg shadow-gold/10" size="lg" onClick={g.startRound}>
-                  Distribuisci Carte
-                </Button>
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <Button className="w-full font-bold text-base py-6 shadow-lg shadow-gold/10" size="lg" onClick={g.startRound}>
+                    Distribuisci Carte
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant={g.autoPlay ? "destructive" : "outline"}
+                    className="py-6 font-semibold gap-2"
+                    onClick={() => g.setAutoPlay(!g.autoPlay)}
+                  >
+                    {g.autoPlay ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                    {g.autoPlay ? "Ferma Auto" : `Auto ${g.bet} €`}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -253,9 +273,21 @@ function Index() {
             )}
 
             {g.phase === "showdown" && (
-              <Button className="w-full font-bold py-6 text-base" size="lg" onClick={g.nextRound}>
-                <RotateCcw className="mr-2 h-5 w-5" /> Nuova Mano
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Button className="w-full font-bold py-6 text-base" size="lg" onClick={g.nextRound}>
+                  <RotateCcw className="mr-2 h-5 w-5" /> Nuova Mano
+                </Button>
+                {g.autoPlay && (
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="py-6 font-semibold gap-2"
+                    onClick={() => g.setAutoPlay(false)}
+                  >
+                    <Pause className="h-5 w-5" /> Ferma Auto
+                  </Button>
+                )}
+              </div>
             )}
 
             {g.phase === "quiz" && (
