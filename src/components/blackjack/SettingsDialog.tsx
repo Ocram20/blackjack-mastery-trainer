@@ -1,4 +1,4 @@
-import { Settings2, RotateCcw, Users, Target, Calculator } from "lucide-react";
+import { Settings2, RotateCcw, Users, Target, Calculator, Layers } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,8 @@ interface SettingsDialogProps {
   resetProgress: () => void;
   countingEnabled: boolean;
   setCountingEnabled: (v: boolean) => void;
+  myHands: number;
+  setMyHands: (n: number) => void;
 }
 
 export function SettingsDialog({
@@ -38,6 +40,8 @@ export function SettingsDialog({
   resetProgress,
   countingEnabled,
   setCountingEnabled,
+  myHands,
+  setMyHands,
 }: SettingsDialogProps) {
   return (
     <Dialog>
@@ -97,6 +101,28 @@ export function SettingsDialog({
             </Select>
             <p className="text-xs text-muted-foreground">
               Le carte servite ai Bot aggiornano il Running Count nascosto, simulando l&apos;affollamento di un vero casinò.
+            </p>
+          </div>
+
+          {/* Mani giocate contemporaneamente */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Layers className="h-4 w-4 text-gold" />
+              Mani Giocate Contemporaneamente
+            </Label>
+            <Select value={String(myHands)} onValueChange={(val) => setMyHands(Number(val))}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleziona numero di mani" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Mano</SelectItem>
+                <SelectItem value="2">2 Mani</SelectItem>
+                <SelectItem value="3">3 Mani</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Giochi più mani nello stesso round (una puntata per mano) e decidi ogni mano in
+              sequenza: più decisioni nello stesso tempo.
             </p>
           </div>
 
