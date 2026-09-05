@@ -454,7 +454,7 @@ export function useBlackjack() {
 
   // ---------- Modalità automatica: distribuisce e passa mano da sola ----------
   useEffect(() => {
-    if (!autoPlay) return;
+    if (!autoPlay) return undefined;
     if (phase === "betting") {
       const t = setTimeout(() => startRound(), 700);
       return () => clearTimeout(t);
@@ -463,6 +463,7 @@ export function useBlackjack() {
       const t = setTimeout(() => nextRound(), 1800);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [autoPlay, phase, startRound, nextRound]);
 
   const activeHand = hands[active];
